@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Caça aos Patos 2.0 - Arcade</title>
+<title>Caça aos Patos 2.0 - Arcade com Ranking</title>
 <style>
   /* --- VISUAL DO JOGO --- */
   * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
@@ -16,6 +16,24 @@
     font-family: 'Arial', sans-serif;
   }
 
+  /* --- SISTEMA DE DIA E NOITE --- */
+  #ceu-noite {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: linear-gradient(to bottom, #020111 0%, #20124d 100%);
+    opacity: 0; 
+    transition: opacity 3s ease-in-out; 
+    pointer-events: none;
+    z-index: 1; 
+  }
+
+  .estrela {
+    position: absolute;
+    background: white;
+    border-radius: 50%;
+    box-shadow: 0 0 5px white;
+  }
+
   #chao {
     position: absolute;
     bottom: 0;
@@ -24,6 +42,7 @@
     background: #228B22;
     border-top: 5px solid #006400;
     z-index: 10;
+    transition: filter 3s; 
   }
 
   #hud { 
@@ -118,37 +137,113 @@
     align-items: center; 
     position: absolute; 
     top: 0; left: 0; width: 100%; height: 100%; 
-    background: rgba(0, 0, 0, 0.8); 
+    background: rgba(0, 0, 0, 0.85); 
     z-index: 50; 
     color: white;
+    padding: 20px;
   }
   
   .escondido { display: none !important; }
   
-  #tela-overlay h1 { font-size: 60px; color: #FFD700; margin-bottom: 20px; text-shadow: 3px 3px 0 #D2691E; }
-  #texto-pontuacao { font-size: 30px; margin-bottom: 30px; }
-  #pontuacao-final { color: #00FF00; font-size: 45px; font-weight: bold;}
+  #tela-overlay h1 { font-size: 50px; color: #FFD700; margin-bottom: 15px; text-shadow: 3px 3px 0 #D2691E; text-align: center; }
+  #texto-pontuacao { font-size: 24px; margin-bottom: 15px; text-align: center; }
+  #pontuacao-final { color: #00FF00; font-size: 35px; font-weight: bold;}
   
+  /* Formulario do Nome */
+  #form-salvar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  input[type="text"] {
+    padding: 12px 15px;
+    font-size: 18px;
+    border: 2px solid #FFD700;
+    border-radius: 8px;
+    outline: none;
+    background: #222;
+    color: white;
+    text-align: center;
+  }
+
   button { 
-    padding: 15px 50px; 
-    font-size: 24px; 
+    padding: 12px 30px; 
+    font-size: 20px; 
     font-weight: bold; 
     color: white; 
     background: #FF4500; 
-    border: 4px solid #FFF; 
-    border-radius: 10px; 
+    border: 3px solid #FFF; 
+    border-radius: 8px; 
     cursor: pointer; 
     transition: 0.2s; 
   }
   button:hover { background: #FF0000; transform: scale(1.05); }
 
+  /* Tabela de Ranking */
+  #container-ranking {
+    width: 100%;
+    max-width: 450px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid #FFD700;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 20px;
+    max-height: 250px;
+    overflow-y: auto;
+  }
+
+  #container-ranking h3 {
+    text-align: center;
+    color: #FFD700;
+    margin-bottom: 10px;
+    font-size: 22px;
+  }
+
+  .tabela-ranking {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 18px;
+  }
+
+  .tabela-ranking th, .tabela-ranking td {
+    padding: 8px 12px;
+    text-align: left;
+  }
+
+  .tabela-ranking th {
+    color: #00FFFF;
+    border-bottom: 2px solid #555;
+  }
+
+  .tabela-ranking tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .tabela-ranking tr:first-child td {
+    color: #FFD700; 
+    font-weight: bold;
+  }
+
+  .tabela-ranking tr:nth-child(2) td {
+    color: #C0C0C0; 
+    font-weight: bold;
+  }
+
+  .tabela-ranking tr:nth-child(3) td {
+    color: #CD7F32; 
+    font-weight: bold;
+  }
 </style>
 </head>
 <body>
 
+  <div id="ceu-noite"></div>
+
   <div id="hud">
     Patos Abatidos: <span id="pontuacao">0</span> <br>
-    Tempo: <span id="tempo">90</span>s </div>
+    Tempo: <span id="tempo">90</span>s
+  </div>
 
   <div id="chao"></div>
   
@@ -159,22 +254,67 @@
 
   <div id="tela-overlay">
     <h1 id="titulo-tela">CAÇA AOS PATOS 🦆</h1>
-    <h2 id="texto-pontuacao" class="escondido">Abates: <br><br><center><span id="pontuacao-final">0</span></center></h2>
+    
+    <div id="texto-pontuacao" class="escondido">
+      Sua Pontuação: <span id="pontuacao-final">0</span> pts
+    </div>
+
+    <div id="form-salvar" class="escondido">
+      <input type="text" id="nome-jogador" placeholder="Seu Nome / Apelido" maxlength="12">
+      <button id="btn-salvar" onclick="salvarPontuacao()">Salvar</button>
+    </div>
+
+    <div id="container-ranking" class="escondido">
+      <h3>🏆 TOP 10 CAÇADORES 🏆</h3>
+      <table class="tabela-ranking">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Nome</th>
+            <th>Pontos</th>
+          </tr>
+        </thead>
+        <tbody id="corpo-tabela-ranking">
+          </tbody>
+      </table>
+    </div>
+
     <button id="btn-iniciar" onclick="window.iniciarJogo()">Preparar Espingarda!</button>
   </div>
 
   <script>
     let pontos = 0;
-    let tempoRestante = 90; // AQUI: Mudei para 90 na variável inicial
+    let tempoRestante = 90; 
     let intervaloTempo;
     let intervaloPatos;
+    let intervaloDiaNoite; 
     let jogoRodando = false;
+    let ehDia = true;
 
     const elPontuacao = document.getElementById('pontuacao');
     const elTempo = document.getElementById('tempo');
     const telaOverlay = document.getElementById('tela-overlay');
     const btnIniciar = document.getElementById('btn-iniciar');
     const arma = document.getElementById('arma-container');
+    const ceuNoite = document.getElementById('ceu-noite');
+    const chao = document.getElementById('chao');
+    const formSalvar = document.getElementById('form-salvar');
+    const containerRanking = document.getElementById('container-ranking');
+    const corpoTabelaRanking = document.getElementById('corpo-tabela-ranking');
+    const inputNome = document.getElementById('nome-jogador');
+
+    // Estrelas da Noite (Garantindo que o DOM carregou)
+    window.onload = function() {
+      for(let i = 0; i < 30; i++) {
+        let estrela = document.createElement('div');
+        estrela.className = 'estrela';
+        estrela.style.width = Math.random() * 3 + 'px';
+        estrela.style.height = estrela.style.width;
+        estrela.style.left = Math.random() * 100 + '%';
+        estrela.style.top = Math.random() * 80 + '%';
+        ceuNoite.appendChild(estrela);
+      }
+    };
 
     // MIRA DA ESPINGARDA
     document.addEventListener('mousemove', (e) => {
@@ -192,7 +332,7 @@
 
     // SISTEMA DE TIRO
     document.body.addEventListener('mousedown', function(event) {
-      if (!jogoRodando || event.target.tagName === 'BUTTON') return;
+      if (!jogoRodando || event.target.tagName === 'BUTTON' || event.target.tagName === 'INPUT') return;
 
       const bala = document.createElement('div');
       bala.className = 'bala';
@@ -210,7 +350,7 @@
 
       setTimeout(() => bala.remove(), 100);
 
-      if (!event.target.closest('.pato') && event.target.id !== 'chao') {
+      if (!event.target.closest('.pato') && event.target.id !== 'chao' && event.target.id !== 'hud') {
         pontos = Math.max(0, pontos - 1); 
         elPontuacao.innerText = pontos;
       }
@@ -219,15 +359,20 @@
     // INICIAR O JOGO
     window.iniciarJogo = function() {
       pontos = 0;
-      tempoRestante = 90; // AQUI: Mudei para 90 quando o jogo reinicia
+      tempoRestante = 90; 
       jogoRodando = true;
+      ehDia = true; 
       
       elPontuacao.innerText = pontos;
       elTempo.innerText = tempoRestante;
       telaOverlay.classList.add('escondido'); 
       
+      ceuNoite.style.opacity = '0';
+      chao.style.filter = 'brightness(1)';
+      
       clearInterval(intervaloTempo);
       clearInterval(intervaloPatos);
+      clearInterval(intervaloDiaNoite);
       
       intervaloTempo = setInterval(() => {
         tempoRestante--;
@@ -236,9 +381,19 @@
       }, 1000);
 
       intervaloPatos = setInterval(criarPato, 800); 
-    };
 
-    btnIniciar.onclick = window.iniciarJogo;
+      // Ciclo de Dia e Noite
+      intervaloDiaNoite = setInterval(() => {
+        ehDia = !ehDia;
+        if(ehDia) {
+          ceuNoite.style.opacity = '0';
+          chao.style.filter = 'brightness(1)';
+        } else {
+          ceuNoite.style.opacity = '1';
+          chao.style.filter = 'brightness(0.3)';
+        }
+      }, 25000); 
+    };
 
     // CRIAR O PATO 
     function criarPato() {
@@ -314,14 +469,61 @@
       jogoRodando = false;
       clearInterval(intervaloTempo);
       clearInterval(intervaloPatos);
+      clearInterval(intervaloDiaNoite);
       
       document.querySelectorAll('.pato').forEach(p => p.remove());
       
       document.getElementById('pontuacao-final').innerText = pontos;
       document.getElementById('titulo-tela').innerText = "FIM DA CAÇADA!";
       document.getElementById('texto-pontuacao').classList.remove('escondido');
+      
+      formSalvar.classList.remove('escondido');
+      inputNome.value = '';
+      
+      atualizarTabelaRanking();
+      containerRanking.classList.remove('escondido');
+
       btnIniciar.innerText = "Caçar Novamente";
       telaOverlay.classList.remove('escondido');
+    }
+
+    // SISTEMA DE RANKING (LOCALSTORAGE)
+    function obterRanking() {
+      return JSON.parse(localStorage.getItem('caca_patos_ranking') || '[]');
+    }
+
+    function salvarPontuacao() {
+      const nome = inputNome.value.trim() || 'Anônimo';
+      let ranking = obterRanking();
+
+      ranking.push({ nome: nome, pontos: pontos });
+      ranking.sort((a, b) => b.pontos - a.pontos);
+      ranking = ranking.slice(0, 10);
+
+      localStorage.setItem('caca_patos_ranking', JSON.stringify(ranking));
+
+      formSalvar.classList.add('escondido');
+      atualizarTabelaRanking();
+    }
+
+    function atualizarTabelaRanking() {
+      const ranking = obterRanking();
+      corpoTabelaRanking.innerHTML = '';
+
+      if (ranking.length === 0) {
+        corpoTabelaRanking.innerHTML = '<tr><td colspan="3" style="text-align:center;">Nenhum registro ainda.</td></tr>';
+        return;
+      }
+
+      ranking.forEach((item, index) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${index + 1}º</td>
+          <td>${item.nome}</td>
+          <td>${item.pontos} pts</td>
+        `;
+        corpoTabelaRanking.appendChild(tr);
+      });
     }
   </script>
 </body>
