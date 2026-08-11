@@ -2,416 +2,356 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Caça aos Patos 2.0 - Arcade com Ranking</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Caça aos Patos - Edição Completa</title>
 <style>
   /* --- VISUAL DO JOGO --- */
   * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
   
   body { 
-    background: linear-gradient(to bottom, #87CEEB 0%, #a2dffa 100%); 
+    background: #87CEEB; 
     overflow: hidden; 
     height: 100vh; 
     width: 100vw; 
     cursor: crosshair; 
-    font-family: 'Arial', sans-serif;
+    font-family: 'Courier New', Courier, monospace; 
   }
 
-  /* --- SISTEMA DE DIA E NOITE --- */
-  #ceu-noite {
-    position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: linear-gradient(to bottom, #020111 0%, #20124d 100%);
-    opacity: 0; 
-    transition: opacity 3s ease-in-out; 
-    pointer-events: none;
-    z-index: 1; 
+  /* --- CENÁRIO (NUVENS E GRAMA) --- */
+  .nuvem {
+    position: absolute; background: rgba(255, 255, 255, 0.9);
+    border-radius: 50px; z-index: 2;
   }
-
-  .estrela {
-    position: absolute;
-    background: white;
-    border-radius: 50%;
-    box-shadow: 0 0 5px white;
+  .nuvem::before, .nuvem::after {
+    content: ''; position: absolute; background: rgba(255, 255, 255, 0.9); border-radius: 50%;
   }
 
   #chao {
-    position: absolute;
-    bottom: 0;
-    width: 100%;
-    height: 15vh;
-    background: #228B22;
-    border-top: 5px solid #006400;
-    z-index: 10;
-    transition: filter 3s; 
+    position: absolute; bottom: 0; width: 100%; height: 15vh;
+    background: #228B22; border-top: 8px solid #005000; z-index: 10;
   }
 
+  /* --- HUD (TEXTOS NA TELA) --- */
   #hud { 
-    position: absolute; 
-    top: 20px; 
-    left: 20px; 
-    font-size: 28px; 
-    font-weight: bold; 
-    color: white;
-    text-shadow: 2px 2px 0px #000;
-    pointer-events: none; 
-    z-index: 20; 
+    position: absolute; top: 15px; left: 20px; font-size: 24px; font-weight: bold; 
+    color: white; text-shadow: 2px 2px 0px #000; pointer-events: none; z-index: 20; 
+    line-height: 1.5;
   }
-  
   #tempo { color: #FF4500; }
+  #nivel-ui { color: #FFD700; }
+  
+  #hud-municao {
+    position: absolute; bottom: 20px; right: 30px; font-size: 40px; font-weight: bold;
+    color: #FFD700; text-shadow: 2px 2px 0px #000; pointer-events: none; z-index: 20;
+    text-align: right;
+  }
+  #alerta-recarregar {
+    color: red; font-size: 20px; display: none; animation: piscar 0.5s infinite;
+  }
+  @keyframes piscar { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
 
   /* --- O PATO ANIMADO --- */
   .pato {
-    position: absolute;
-    width: 90px;
-    height: 90px;
-    cursor: crosshair;
-    z-index: 5;
+    position: absolute; width: 100px; height: 100px; cursor: crosshair; z-index: 5;
     transition: transform 0.1s;
   }
 
   @keyframes baterAsa {
-    0% { transform: scaleY(1); }
-    50% { transform: scaleY(-1); }
-    100% { transform: scaleY(1); }
+    0% { transform: scaleY(1) rotate(0deg); }
+    50% { transform: scaleY(-1) rotate(-10deg); }
+    100% { transform: scaleY(1) rotate(0deg); }
   }
-  .asa {
-    transform-origin: center;
-    animation: baterAsa 0.15s infinite;
-  }
+  .asa { transform-origin: center; animation: baterAsa 0.15s infinite; }
 
   .morto {
-    transform: scaleY(-1) translateY(-20px);
-    pointer-events: none;
-    filter: grayscale(100%);
+    transform: scaleY(-1) translateY(-20px) !important;
+    pointer-events: none; filter: grayscale(50%) brightness(0.5);
   }
 
-  /* --- A ESPINGARDA E A BALA --- */
+  /* --- A ESPINGARDA --- */
   #arma-container {
-    position: absolute;
-    bottom: -10px;
-    left: 50%;
-    width: 30px;
-    height: 180px;
-    margin-left: -15px;
-    transform-origin: bottom center;
-    pointer-events: none;
-    z-index: 40;
-    transition: transform 0.05s linear;
+    position: absolute; bottom: -10px; left: 50%; width: 34px; height: 200px;
+    margin-left: -17px; transform-origin: bottom center; pointer-events: none; z-index: 40;
   }
 
   #cano {
-    width: 12px;
-    height: 120px;
-    background: linear-gradient(to right, #444, #777, #444);
-    margin: 0 auto;
-    border-radius: 5px 5px 0 0;
-    box-shadow: inset 0 2px 5px rgba(0,0,0,0.8);
+    position: relative; width: 16px; height: 140px; background: #555; margin: 0 auto;
+    border: 2px solid #000; border-bottom: none; border-radius: 4px 4px 0 0;
+  }
+  #cano::after {
+    content: ''; position: absolute; top: -6px; left: 4px; width: 4px; height: 6px; 
+    background: red; border: 1px solid black; border-radius: 2px;
   }
 
   #coronha {
-    width: 30px;
-    height: 60px;
-    background: #5c3a21;
+    width: 34px; height: 70px; background: #5c3a21; border: 2px solid #000;
     border-radius: 0 0 10px 10px;
-    box-shadow: inset -3px 0 5px rgba(0,0,0,0.5);
   }
 
   .bala {
-    position: absolute;
-    width: 6px;
-    height: 25px;
-    background: #FFF8DC;
-    box-shadow: 0 0 10px #FFA500, 0 0 20px #FF4500;
-    border-radius: 3px;
-    pointer-events: none;
-    z-index: 35;
-    transition: all 0.1s ease-out; 
-    opacity: 1;
+    position: absolute; width: 8px; height: 30px; background: #FFF8DC;
+    box-shadow: 0 0 15px #FFA500; border-radius: 4px; pointer-events: none; z-index: 35;
   }
 
   /* --- TELAS E MENUS --- */
   #tela-overlay { 
-    display: flex; 
-    flex-direction: column; 
-    justify-content: center; 
-    align-items: center; 
-    position: absolute; 
-    top: 0; left: 0; width: 100%; height: 100%; 
-    background: rgba(0, 0, 0, 0.85); 
-    z-index: 50; 
-    color: white;
-    padding: 20px;
+    display: flex; flex-direction: column; justify-content: center; align-items: center; 
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+    background: rgba(0, 0, 0, 0.9); z-index: 50; color: white; padding: 20px;
   }
-  
   .escondido { display: none !important; }
   
-  #tela-overlay h1 { font-size: 50px; color: #FFD700; margin-bottom: 15px; text-shadow: 3px 3px 0 #D2691E; text-align: center; }
-  #texto-pontuacao { font-size: 24px; margin-bottom: 15px; text-align: center; }
-  #pontuacao-final { color: #00FF00; font-size: 35px; font-weight: bold;}
+  #tela-overlay h1 { font-size: 60px; color: #FFD700; margin-bottom: 10px; text-shadow: 4px 4px 0 #D2691E; text-align: center; }
+  #tela-overlay p { font-size: 20px; margin-bottom: 30px; color: #ccc; text-align: center; max-width: 600px;}
   
-  /* Formulario do Nome */
-  #form-salvar {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
-  }
-
-  input[type="text"] {
-    padding: 12px 15px;
-    font-size: 18px;
-    border: 2px solid #FFD700;
-    border-radius: 8px;
-    outline: none;
-    background: #222;
-    color: white;
-    text-align: center;
-  }
-
   button { 
-    padding: 12px 30px; 
-    font-size: 20px; 
-    font-weight: bold; 
-    color: white; 
-    background: #FF4500; 
-    border: 3px solid #FFF; 
-    border-radius: 8px; 
-    cursor: pointer; 
-    transition: 0.2s; 
+    padding: 15px 40px; font-size: 26px; font-weight: bold; font-family: inherit;
+    color: white; background: #FF4500; border: 4px solid #FFF; border-radius: 8px; cursor: pointer; 
   }
-  button:hover { background: #FF0000; transform: scale(1.05); }
-
-  /* Tabela de Ranking */
-  #container-ranking {
-    width: 100%;
-    max-width: 450px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 2px solid #FFD700;
-    border-radius: 10px;
-    padding: 15px;
-    margin-bottom: 20px;
-    max-height: 250px;
-    overflow-y: auto;
-  }
-
-  #container-ranking h3 {
-    text-align: center;
-    color: #FFD700;
-    margin-bottom: 10px;
-    font-size: 22px;
-  }
-
-  .tabela-ranking {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 18px;
-  }
-
-  .tabela-ranking th, .tabela-ranking td {
-    padding: 8px 12px;
-    text-align: left;
-  }
-
-  .tabela-ranking th {
-    color: #00FFFF;
-    border-bottom: 2px solid #555;
-  }
-
-  .tabela-ranking tr:nth-child(even) {
-    background: rgba(255, 255, 255, 0.05);
-  }
-
-  .tabela-ranking tr:first-child td {
-    color: #FFD700; 
-    font-weight: bold;
-  }
-
-  .tabela-ranking tr:nth-child(2) td {
-    color: #C0C0C0; 
-    font-weight: bold;
-  }
-
-  .tabela-ranking tr:nth-child(3) td {
-    color: #CD7F32; 
-    font-weight: bold;
-  }
+  button:hover { background: #FF0000; transform: translateY(4px); }
 </style>
 </head>
 <body>
 
-  <div id="ceu-noite"></div>
+  <div class="nuvem" style="top: 10%; left: 10%; width: 120px; height: 40px;"></div>
+  <div class="nuvem" style="top: 25%; left: 70%; width: 150px; height: 50px;"></div>
 
   <div id="hud">
-    Patos Abatidos: <span id="pontuacao">0</span> <br>
-    Tempo: <span id="tempo">90</span>s
+    NÍVEL: <span id="nivel-ui">1</span><br>
+    PONTOS: <span id="pontuacao">0</span><br>
+    TEMPO: <span id="tempo">90</span>s
+  </div>
+
+  <div id="hud-municao">
+    <div id="alerta-recarregar">APERTE 'R'</div>
+    <span id="balas-ui">▮▮▮▮▮</span>
   </div>
 
   <div id="chao"></div>
-  
   <div id="arma-container">
     <div id="cano"></div>
     <div id="coronha"></div>
   </div>
 
   <div id="tela-overlay">
-    <h1 id="titulo-tela">CAÇA AOS PATOS 🦆</h1>
-    
-    <div id="texto-pontuacao" class="escondido">
-      Sua Pontuação: <span id="pontuacao-final">0</span> pts
-    </div>
-
-    <div id="form-salvar" class="escondido">
-      <input type="text" id="nome-jogador" placeholder="Seu Nome / Apelido" maxlength="12">
-      <button id="btn-salvar" onclick="salvarPontuacao()">Salvar</button>
-    </div>
-
-    <div id="container-ranking" class="escondido">
-      <h3>🏆 TOP 10 CAÇADORES 🏆</h3>
-      <table class="tabela-ranking">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Nome</th>
-            <th>Pontos</th>
-          </tr>
-        </thead>
-        <tbody id="corpo-tabela-ranking">
-          </tbody>
-      </table>
-    </div>
-
-    <button id="btn-iniciar" onclick="window.iniciarJogo()">Preparar Espingarda!</button>
+    <h1 id="titulo-tela">CAÇA AOS PATOS</h1>
+    <p>
+      🦆 <b>Verde:</b> +5 Pts | 🌟 <b>Dourado:</b> +30 Pts | 💀 <b>Vermelho:</b> -15 Pts<br><br>
+      ⚠️ <b>Atenção:</b> Você só tem 5 balas. Aperte a tecla <b>R</b> para recarregar!
+    </p>
+    <h2 id="pontuacao-final" class="escondido" style="color: lime; margin-bottom: 20px; font-size: 40px;">0 PONTOS</h2>
+    <button id="btn-iniciar">JOGAR AGORA!</button>
   </div>
 
   <script>
+    // --- MOTOR DE ÁUDIO 8-BITS (Web Audio API) ---
+    let actx;
+    function iniciarAudio() {
+      if(!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+      if(actx.state === 'suspended') actx.resume();
+    }
+
+    function tocarSom(tipo) {
+      if(!actx) return;
+      const osc = actx.createOscillator();
+      const gain = actx.createGain();
+      osc.connect(gain); gain.connect(actx.destination);
+      let agora = actx.currentTime;
+      
+      if(tipo === 'tiro') {
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(150, agora);
+        osc.frequency.exponentialRampToValueAtTime(10, agora + 0.1);
+        gain.gain.setValueAtTime(0.3, agora);
+        gain.gain.exponentialRampToValueAtTime(0.01, agora + 0.1);
+        osc.start(agora); osc.stop(agora + 0.1);
+      } else if (tipo === 'vazio') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(900, agora);
+        gain.gain.setValueAtTime(0.2, agora);
+        osc.start(agora); osc.stop(agora + 0.05);
+      } else if (tipo === 'recarregar') {
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(250, agora);
+        osc.frequency.setValueAtTime(350, agora + 0.1);
+        gain.gain.setValueAtTime(0.1, agora);
+        osc.start(agora); osc.stop(agora + 0.2);
+      } else if (tipo === 'acerto') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(800, agora);
+        osc.frequency.setValueAtTime(1200, agora + 0.1);
+        gain.gain.setValueAtTime(0.2, agora);
+        gain.gain.exponentialRampToValueAtTime(0.01, agora + 0.3);
+        osc.start(agora); osc.stop(agora + 0.3);
+      } else if (tipo === 'erro') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(200, agora);
+        osc.frequency.linearRampToValueAtTime(80, agora + 0.3);
+        gain.gain.setValueAtTime(0.2, agora);
+        gain.gain.linearRampToValueAtTime(0.01, agora + 0.3);
+        osc.start(agora); osc.stop(agora + 0.3);
+      }
+    }
+
+    // --- CONFIGURAÇÃO VISUAL DAS NUVENS ---
+    document.querySelectorAll('.nuvem').forEach(n => {
+      let b1 = document.createElement('div');
+      b1.style.cssText = "width: 50%; height: 120%; top: -50%; left: 15%; border-radius: 50%; background: inherit; position: absolute;";
+      let b2 = document.createElement('div');
+      b2.style.cssText = "width: 40%; height: 100%; top: -30%; left: 45%; border-radius: 50%; background: inherit; position: absolute;";
+      n.appendChild(b1); n.appendChild(b2);
+    });
+
+    // --- VARIÁVEIS DO JOGO ---
     let pontos = 0;
     let tempoRestante = 90; 
-    let intervaloTempo;
-    let intervaloPatos;
-    let intervaloDiaNoite; 
+    let nivel = 1;
+    let maxMunicao = 5;
+    let municaoAtual = 5;
+    let velocidadeSpaw = 1000;
+    
+    let intervaloTempo, intervaloPatos, intervaloNivel; 
     let jogoRodando = false;
-    let ehDia = true;
 
+    // --- ELEMENTOS HTML ---
     const elPontuacao = document.getElementById('pontuacao');
     const elTempo = document.getElementById('tempo');
+    const elNivel = document.getElementById('nivel-ui');
+    const elBalas = document.getElementById('balas-ui');
+    const elAlerta = document.getElementById('alerta-recarregar');
     const telaOverlay = document.getElementById('tela-overlay');
     const btnIniciar = document.getElementById('btn-iniciar');
     const arma = document.getElementById('arma-container');
-    const ceuNoite = document.getElementById('ceu-noite');
-    const chao = document.getElementById('chao');
-    const formSalvar = document.getElementById('form-salvar');
-    const containerRanking = document.getElementById('container-ranking');
-    const corpoTabelaRanking = document.getElementById('corpo-tabela-ranking');
-    const inputNome = document.getElementById('nome-jogador');
+    const pontuacaoFinal = document.getElementById('pontuacao-final');
 
-    // Estrelas da Noite (Garantindo que o DOM carregou)
-    window.onload = function() {
-      for(let i = 0; i < 30; i++) {
-        let estrela = document.createElement('div');
-        estrela.className = 'estrela';
-        estrela.style.width = Math.random() * 3 + 'px';
-        estrela.style.height = estrela.style.width;
-        estrela.style.left = Math.random() * 100 + '%';
-        estrela.style.top = Math.random() * 80 + '%';
-        ceuNoite.appendChild(estrela);
-      }
-    };
+    // --- INICIALIZAÇÃO ---
+    btnIniciar.addEventListener('click', iniciarJogo);
 
-    // MIRA DA ESPINGARDA
+    // --- MOVIMENTAÇÃO DA ARMA ---
     document.addEventListener('mousemove', (e) => {
       const baseArmaX = window.innerWidth / 2;
       const baseArmaY = window.innerHeight;
-      const deltaX = e.clientX - baseArmaX;
-      const deltaY = e.clientY - baseArmaY;
-      let angulo = Math.atan2(deltaY, deltaX) * (180 / Math.PI) + 90;
-      
+      let angulo = Math.atan2(e.clientY - baseArmaY, e.clientX - baseArmaX) * (180 / Math.PI) + 90;
       if (angulo < -80) angulo = -80;
       if (angulo > 80) angulo = 80;
-
       arma.style.transform = `rotate(${angulo}deg)`;
     });
 
-    // SISTEMA DE TIRO
-    document.body.addEventListener('mousedown', function(event) {
-      if (!jogoRodando || event.target.tagName === 'BUTTON' || event.target.tagName === 'INPUT') return;
+    // --- SISTEMA DE RECARGA (TECLA R) ---
+    document.addEventListener('keydown', (e) => {
+      if ((e.key === 'r' || e.key === 'R') && jogoRodando && municaoAtual < maxMunicao) {
+        municaoAtual = maxMunicao;
+        atualizarMunicaoUI();
+        tocarSom('recarregar');
+      }
+    });
 
+    function atualizarMunicaoUI() {
+      let icones = "";
+      for(let i = 0; i < municaoAtual; i++) icones += "▮";
+      elBalas.innerText = icones;
+      elAlerta.style.display = municaoAtual === 0 ? "block" : "none";
+    }
+
+    // --- SISTEMA DE TIRO ---
+    document.body.addEventListener('mousedown', function(event) {
+      if (!jogoRodando || event.target.tagName === 'BUTTON') return;
+
+      if (municaoAtual <= 0) {
+        tocarSom('vazio');
+        return;
+      }
+
+      municaoAtual--;
+      atualizarMunicaoUI();
+      tocarSom('tiro');
+
+      // Efeito Visual da Bala
       const bala = document.createElement('div');
       bala.className = 'bala';
-      
-      bala.style.left = (window.innerWidth / 2) + 'px';
+      bala.style.left = (window.innerWidth / 2 - 4) + 'px';
       bala.style.top = (window.innerHeight - 50) + 'px';
       document.body.appendChild(bala);
 
-      bala.getBoundingClientRect();
-
-      bala.style.left = event.clientX + 'px';
+      bala.getBoundingClientRect(); 
+      bala.style.left = (event.clientX - 4) + 'px';
       bala.style.top = event.clientY + 'px';
       bala.style.opacity = '0'; 
       bala.style.transform = arma.style.transform; 
-
       setTimeout(() => bala.remove(), 100);
 
-      if (!event.target.closest('.pato') && event.target.id !== 'chao' && event.target.id !== 'hud') {
+      // Penalidade por errar o tiro
+      if (!event.target.closest('.pato') && event.target.id !== 'chao' && event.target.id !== 'hud' && event.target.id !== 'hud-municao') {
         pontos = Math.max(0, pontos - 1); 
         elPontuacao.innerText = pontos;
       }
     });
 
-    // INICIAR O JOGO
-    window.iniciarJogo = function() {
-      pontos = 0;
-      tempoRestante = 90; 
-      jogoRodando = true;
-      ehDia = true; 
+    // --- LOOP PRINCIPAL DO JOGO ---
+    function iniciarJogo() {
+      iniciarAudio(); // Libera o áudio no navegador
+      pontos = 0; tempoRestante = 90; nivel = 1; municaoAtual = maxMunicao; velocidadeSpaw = 1000;
+      jogoRodando = true; 
       
-      elPontuacao.innerText = pontos;
-      elTempo.innerText = tempoRestante;
+      elPontuacao.innerText = pontos; elTempo.innerText = tempoRestante; elNivel.innerText = nivel;
+      atualizarMunicaoUI();
+      
       telaOverlay.classList.add('escondido'); 
+      pontuacaoFinal.classList.add('escondido');
       
-      ceuNoite.style.opacity = '0';
-      chao.style.filter = 'brightness(1)';
+      clearInterval(intervaloTempo); clearInterval(intervaloPatos); clearInterval(intervaloNivel);
       
-      clearInterval(intervaloTempo);
-      clearInterval(intervaloPatos);
-      clearInterval(intervaloDiaNoite);
-      
+      // Cronômetro
       intervaloTempo = setInterval(() => {
-        tempoRestante--;
-        elTempo.innerText = tempoRestante;
+        tempoRestante--; elTempo.innerText = tempoRestante;
         if (tempoRestante <= 0) finalizarJogo();
       }, 1000);
 
-      intervaloPatos = setInterval(criarPato, 800); 
+      // Sistema de Fases (Níveis)
+      intervaloNivel = setInterval(() => {
+        nivel++;
+        elNivel.innerText = nivel;
+        velocidadeSpaw = Math.max(300, velocidadeSpaw - 150); // Fica mais rápido até o limite de 300ms
+        clearInterval(intervaloPatos);
+        intervaloPatos = setInterval(criarPato, velocidadeSpaw);
+      }, 15000); // A cada 15 seg sobe de nível
 
-      // Ciclo de Dia e Noite
-      intervaloDiaNoite = setInterval(() => {
-        ehDia = !ehDia;
-        if(ehDia) {
-          ceuNoite.style.opacity = '0';
-          chao.style.filter = 'brightness(1)';
-        } else {
-          ceuNoite.style.opacity = '1';
-          chao.style.filter = 'brightness(0.3)';
-        }
-      }, 25000); 
-    };
+      intervaloPatos = setInterval(criarPato, velocidadeSpaw); 
+    }
 
-    // CRIAR O PATO 
+    // --- CRIAÇÃO DOS PATOS ---
     function criarPato() {
       if (!jogoRodando) return;
-
       const pato = document.createElement('div');
       pato.className = 'pato';
       
+      // Sorteio do tipo de Pato
+      const chance = Math.random();
+      let corCabeca = '#1b5e20'; let corCorpo = '#8c8c8c'; // Comum
+      let pontosGanhos = 5; let multVelocidade = 1;
+      let ehZumbi = false;
+
+      if (chance > 0.90) { 
+        // 10% DOURADO (Rápido, muitos pontos)
+        corCabeca = '#FFD700'; corCorpo = '#DAA520';
+        pontosGanhos = 30; multVelocidade = 2.5;
+      } else if (chance > 0.75) {
+        // 15% ZUMBI/BOMBA (Tira pontos)
+        corCabeca = '#8B0000'; corCorpo = '#333333';
+        pontosGanhos = -15; multVelocidade = 1.2;
+        ehZumbi = true;
+      }
+      
       pato.innerHTML = `
         <svg viewBox="0 0 100 100" width="100%" height="100%">
-          <ellipse class="asa" cx="45" cy="40" rx="15" ry="25" fill="#5c3a21" />
-          <ellipse cx="50" cy="60" rx="35" ry="20" fill="#8B4513" />
-          <rect x="70" y="35" width="12" height="25" fill="#2E8B57" />
-          <circle cx="76" cy="35" r="14" fill="#2E8B57" />
-          <polygon points="88,32 100,32 100,38 85,38" fill="#FFA500" />
-          <circle cx="80" cy="32" r="2" fill="white" />
-          <circle cx="81" cy="32" r="1" fill="black" />
-          <ellipse class="asa" cx="45" cy="50" rx="20" ry="12" fill="#A0522D" />
+          <ellipse class="asa" cx="45" cy="45" rx="18" ry="25" fill="#4a4a4a"/>
+          <ellipse cx="45" cy="65" rx="35" ry="22" fill="${corCorpo}"/>
+          <rect x="65" y="30" width="16" height="30" fill="${corCabeca}"/>
+          <circle cx="73" cy="30" r="16" fill="${corCabeca}"/>
+          <path d="M 85 24 L 100 24 Q 102 24 102 28 L 85 30 Z" fill="#e65100"/>
+          <circle cx="78" cy="25" r="3.5" fill="${ehZumbi ? 'red' : 'white'}"/>
+          <circle cx="79" cy="25" r="2" fill="black"/>
+          <ellipse class="asa" cx="45" cy="55" rx="22" ry="12" fill="#696969"/>
         </svg>
       `;
 
@@ -421,109 +361,59 @@
       
       pato.style.left = posX + 'px';
       pato.style.top = posY + 'px';
-      
-      if (!vindoDaEsquerda) {
-        pato.querySelector('svg').style.transform = 'scaleX(-1)';
-      }
+      if (!vindoDaEsquerda) pato.querySelector('svg').style.transform = 'scaleX(-1)';
 
+      // Sistema de Acerto
       pato.addEventListener('mousedown', function(event) {
-        if (pato.classList.contains('morto')) return;
+        if (pato.classList.contains('morto') || municaoAtual <= 0) return;
         event.stopPropagation(); 
-
-        pontos += 5; 
+        
+        pontos += pontosGanhos; 
+        if (pontos < 0) pontos = 0; // Não deixa ficar negativo
         elPontuacao.innerText = pontos;
+        
+        if (ehZumbi) tocarSom('erro'); else tocarSom('acerto');
+
         pato.classList.add('morto');
+        pato.innerHTML = `<div style="font-size: 50px; text-align: center; line-height: 100px; font-weight: bold; color: ${ehZumbi ? 'red' : 'lime'}; text-shadow: 2px 2px 0 #000;">${pontosGanhos > 0 ? '+'+pontosGanhos : pontosGanhos}</div>`;
         
-        pato.innerHTML = '<div style="font-size: 70px; text-align: center; line-height: 90px;">💥</div>';
-        
-        setTimeout(() => pato.remove(), 400); 
+        setTimeout(() => pato.remove(), 600); 
       });
 
       document.body.appendChild(pato);
 
-      let velocidadeX = (Math.random() * 4 + 3) * (vindoDaEsquerda ? 1 : -1);
-      let velocidadeY = (Math.random() - 0.5) * 3; 
+      // Movimentação Dinâmica baseada no Nível e Tipo
+      let velBase = (Math.random() * 3 + 2) + (nivel * 0.5);
+      let velocidadeX = velBase * multVelocidade * (vindoDaEsquerda ? 1 : -1);
+      let velocidadeY = (Math.random() - 0.5) * (3 + nivel); 
 
       function moverPato() {
         if (!jogoRodando || pato.classList.contains('morto')) return;
+        posX += velocidadeX; posY += velocidadeY;
+        pato.style.left = posX + 'px'; pato.style.top = posY + 'px';
 
-        posX += velocidadeX;
-        posY += velocidadeY;
-        
-        pato.style.left = posX + 'px';
-        pato.style.top = posY + 'px';
-
+        // Bate no teto/chão virtual e inverte
         if (posY < 10 || posY > window.innerHeight - 250) velocidadeY *= -1;
-
-        if (posX > window.innerWidth + 150 || posX < -150) {
-          pato.remove();
-        } else {
-          requestAnimationFrame(moverPato);
-        }
+        
+        // Remove quando sai da tela
+        if (posX > window.innerWidth + 150 || posX < -150) pato.remove();
+        else requestAnimationFrame(moverPato);
       }
       requestAnimationFrame(moverPato);
     }
 
-    // FIM DE JOGO
+    // --- FIM DE JOGO ---
     function finalizarJogo() {
       jogoRodando = false;
-      clearInterval(intervaloTempo);
-      clearInterval(intervaloPatos);
-      clearInterval(intervaloDiaNoite);
-      
+      clearInterval(intervaloTempo); clearInterval(intervaloPatos); clearInterval(intervaloNivel);
       document.querySelectorAll('.pato').forEach(p => p.remove());
       
-      document.getElementById('pontuacao-final').innerText = pontos;
-      document.getElementById('titulo-tela').innerText = "FIM DA CAÇADA!";
-      document.getElementById('texto-pontuacao').classList.remove('escondido');
+      document.getElementById('titulo-tela').innerText = "FIM DE JOGO";
+      pontuacaoFinal.innerText = "PONTOS: " + pontos;
+      pontuacaoFinal.classList.remove('escondido');
       
-      formSalvar.classList.remove('escondido');
-      inputNome.value = '';
-      
-      atualizarTabelaRanking();
-      containerRanking.classList.remove('escondido');
-
-      btnIniciar.innerText = "Caçar Novamente";
+      btnIniciar.innerText = "JOGAR NOVAMENTE";
       telaOverlay.classList.remove('escondido');
-    }
-
-    // SISTEMA DE RANKING (LOCALSTORAGE)
-    function obterRanking() {
-      return JSON.parse(localStorage.getItem('caca_patos_ranking') || '[]');
-    }
-
-    function salvarPontuacao() {
-      const nome = inputNome.value.trim() || 'Anônimo';
-      let ranking = obterRanking();
-
-      ranking.push({ nome: nome, pontos: pontos });
-      ranking.sort((a, b) => b.pontos - a.pontos);
-      ranking = ranking.slice(0, 10);
-
-      localStorage.setItem('caca_patos_ranking', JSON.stringify(ranking));
-
-      formSalvar.classList.add('escondido');
-      atualizarTabelaRanking();
-    }
-
-    function atualizarTabelaRanking() {
-      const ranking = obterRanking();
-      corpoTabelaRanking.innerHTML = '';
-
-      if (ranking.length === 0) {
-        corpoTabelaRanking.innerHTML = '<tr><td colspan="3" style="text-align:center;">Nenhum registro ainda.</td></tr>';
-        return;
-      }
-
-      ranking.forEach((item, index) => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${index + 1}º</td>
-          <td>${item.nome}</td>
-          <td>${item.pontos} pts</td>
-        `;
-        corpoTabelaRanking.appendChild(tr);
-      });
     }
   </script>
 </body>
