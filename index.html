@@ -3,24 +3,33 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Caça aos Patos - Edição Completa</title>
+<title>Caça aos Patos - Gráficos e Som Melhorados</title>
 <style>
   /* --- VISUAL DO JOGO --- */
   * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
   
   body { 
-    background: #87CEEB; 
+    background: linear-gradient(to bottom, #4CA1AF, #C4E0E5); /* Fundo mais suave e realista */
     overflow: hidden; 
     height: 100vh; 
     width: 100vw; 
-    cursor: crosshair; 
+    /* Nova mira customizada */
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" fill="none" stroke="red" stroke-width="2"/><line x1="16" y1="0" x2="16" y2="8" stroke="red" stroke-width="2"/><line x1="16" y1="24" x2="16" y2="32" stroke="red" stroke-width="2"/><line x1="0" y1="16" x2="8" y2="16" stroke="red" stroke-width="2"/><line x1="24" y1="16" x2="32" y2="16" stroke="red" stroke-width="2"/><circle cx="16" cy="16" r="2" fill="red"/></svg>') 16 16, crosshair;
     font-family: 'Courier New', Courier, monospace; 
+  }
+
+  /* --- EFEITO DE FLASH DO TIRO --- */
+  #flash-tela {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: white; opacity: 0; pointer-events: none; z-index: 45;
+    transition: opacity 0.05s ease-out;
   }
 
   /* --- CENÁRIO (NUVENS E GRAMA) --- */
   .nuvem {
     position: absolute; background: rgba(255, 255, 255, 0.9);
     border-radius: 50px; z-index: 2;
+    box-shadow: 5px 5px 15px rgba(0,0,0,0.1);
   }
   .nuvem::before, .nuvem::after {
     content: ''; position: absolute; background: rgba(255, 255, 255, 0.9); border-radius: 50%;
@@ -28,7 +37,9 @@
 
   #chao {
     position: absolute; bottom: 0; width: 100%; height: 15vh;
-    background: #228B22; border-top: 8px solid #005000; z-index: 10;
+    background: linear-gradient(to top, #114B11, #228B22);
+    border-top: 8px solid #005000; z-index: 10;
+    box-shadow: 0 -10px 20px rgba(0,0,0,0.3);
   }
 
   /* --- HUD (TEXTOS NA TELA) --- */
@@ -52,8 +63,9 @@
 
   /* --- O PATO ANIMADO --- */
   .pato {
-    position: absolute; width: 100px; height: 100px; cursor: crosshair; z-index: 5;
+    position: absolute; width: 100px; height: 100px; z-index: 5;
     transition: transform 0.1s;
+    filter: drop-shadow(3px 5px 4px rgba(0,0,0,0.3));
   }
 
   @keyframes baterAsa {
@@ -63,358 +75,23 @@
   }
   .asa { transform-origin: center; animation: baterAsa 0.15s infinite; }
 
+  /* Efeito quando acerta o pato */
   .morto {
     transform: scaleY(-1) translateY(-20px) !important;
-    pointer-events: none; filter: grayscale(50%) brightness(0.5);
+    pointer-events: none; 
+    filter: brightness(2) contrast(2) grayscale(0.5) !important; /* Pisca branco/cinza */
+    animation: cair 0.5s forwards ease-in;
   }
+  @keyframes cair { to { top: 100vh; } }
 
   /* --- A ESPINGARDA --- */
   #arma-container {
-    position: absolute; bottom: -10px; left: 50%; width: 34px; height: 200px;
-    margin-left: -17px; transform-origin: bottom center; pointer-events: none; z-index: 40;
+    position: absolute; bottom: -10px; left: 50%; width: 44px; height: 220px;
+    margin-left: -22px; transform-origin: bottom center; pointer-events: none; z-index: 40;
+    filter: drop-shadow(5px 5px 10px rgba(0,0,0,0.5));
   }
 
   #cano {
-    position: relative; width: 16px; height: 140px; background: #555; margin: 0 auto;
-    border: 2px solid #000; border-bottom: none; border-radius: 4px 4px 0 0;
-  }
-  #cano::after {
-    content: ''; position: absolute; top: -6px; left: 4px; width: 4px; height: 6px; 
-    background: red; border: 1px solid black; border-radius: 2px;
-  }
-
-  #coronha {
-    width: 34px; height: 70px; background: #5c3a21; border: 2px solid #000;
-    border-radius: 0 0 10px 10px;
-  }
-
-  .bala {
-    position: absolute; width: 8px; height: 30px; background: #FFF8DC;
-    box-shadow: 0 0 15px #FFA500; border-radius: 4px; pointer-events: none; z-index: 35;
-  }
-
-  /* --- TELAS E MENUS --- */
-  #tela-overlay { 
-    display: flex; flex-direction: column; justify-content: center; align-items: center; 
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-    background: rgba(0, 0, 0, 0.9); z-index: 50; color: white; padding: 20px;
-  }
-  .escondido { display: none !important; }
-  
-  #tela-overlay h1 { font-size: 60px; color: #FFD700; margin-bottom: 10px; text-shadow: 4px 4px 0 #D2691E; text-align: center; }
-  #tela-overlay p { font-size: 20px; margin-bottom: 30px; color: #ccc; text-align: center; max-width: 600px;}
-  
-  button { 
-    padding: 15px 40px; font-size: 26px; font-weight: bold; font-family: inherit;
-    color: white; background: #FF4500; border: 4px solid #FFF; border-radius: 8px; cursor: pointer; 
-  }
-  button:hover { background: #FF0000; transform: translateY(4px); }
-</style>
-</head>
-<body>
-
-  <div class="nuvem" style="top: 10%; left: 10%; width: 120px; height: 40px;"></div>
-  <div class="nuvem" style="top: 25%; left: 70%; width: 150px; height: 50px;"></div>
-
-  <div id="hud">
-    NÍVEL: <span id="nivel-ui">1</span><br>
-    PONTOS: <span id="pontuacao">0</span><br>
-    TEMPO: <span id="tempo">90</span>s
-  </div>
-
-  <div id="hud-municao">
-    <div id="alerta-recarregar">APERTE 'R'</div>
-    <span id="balas-ui">▮▮▮▮▮</span>
-  </div>
-
-  <div id="chao"></div>
-  <div id="arma-container">
-    <div id="cano"></div>
-    <div id="coronha"></div>
-  </div>
-
-  <div id="tela-overlay">
-    <h1 id="titulo-tela">CAÇA AOS PATOS</h1>
-    <p>
-      🦆 <b>Verde:</b> +5 Pts | 🌟 <b>Dourado:</b> +30 Pts | 💀 <b>Vermelho:</b> -15 Pts<br><br>
-      ⚠️ <b>Atenção:</b> Você só tem 5 balas. Aperte a tecla <b>R</b> para recarregar!
-    </p>
-    <h2 id="pontuacao-final" class="escondido" style="color: lime; margin-bottom: 20px; font-size: 40px;">0 PONTOS</h2>
-    <button id="btn-iniciar">JOGAR AGORA!</button>
-  </div>
-
-  <script>
-    // --- MOTOR DE ÁUDIO 8-BITS (Web Audio API) ---
-    let actx;
-    function iniciarAudio() {
-      if(!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
-      if(actx.state === 'suspended') actx.resume();
-    }
-
-    function tocarSom(tipo) {
-      if(!actx) return;
-      const osc = actx.createOscillator();
-      const gain = actx.createGain();
-      osc.connect(gain); gain.connect(actx.destination);
-      let agora = actx.currentTime;
-      
-      if(tipo === 'tiro') {
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(150, agora);
-        osc.frequency.exponentialRampToValueAtTime(10, agora + 0.1);
-        gain.gain.setValueAtTime(0.3, agora);
-        gain.gain.exponentialRampToValueAtTime(0.01, agora + 0.1);
-        osc.start(agora); osc.stop(agora + 0.1);
-      } else if (tipo === 'vazio') {
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(900, agora);
-        gain.gain.setValueAtTime(0.2, agora);
-        osc.start(agora); osc.stop(agora + 0.05);
-      } else if (tipo === 'recarregar') {
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(250, agora);
-        osc.frequency.setValueAtTime(350, agora + 0.1);
-        gain.gain.setValueAtTime(0.1, agora);
-        osc.start(agora); osc.stop(agora + 0.2);
-      } else if (tipo === 'acerto') {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(800, agora);
-        osc.frequency.setValueAtTime(1200, agora + 0.1);
-        gain.gain.setValueAtTime(0.2, agora);
-        gain.gain.exponentialRampToValueAtTime(0.01, agora + 0.3);
-        osc.start(agora); osc.stop(agora + 0.3);
-      } else if (tipo === 'erro') {
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(200, agora);
-        osc.frequency.linearRampToValueAtTime(80, agora + 0.3);
-        gain.gain.setValueAtTime(0.2, agora);
-        gain.gain.linearRampToValueAtTime(0.01, agora + 0.3);
-        osc.start(agora); osc.stop(agora + 0.3);
-      }
-    }
-
-    // --- CONFIGURAÇÃO VISUAL DAS NUVENS ---
-    document.querySelectorAll('.nuvem').forEach(n => {
-      let b1 = document.createElement('div');
-      b1.style.cssText = "width: 50%; height: 120%; top: -50%; left: 15%; border-radius: 50%; background: inherit; position: absolute;";
-      let b2 = document.createElement('div');
-      b2.style.cssText = "width: 40%; height: 100%; top: -30%; left: 45%; border-radius: 50%; background: inherit; position: absolute;";
-      n.appendChild(b1); n.appendChild(b2);
-    });
-
-    // --- VARIÁVEIS DO JOGO ---
-    let pontos = 0;
-    let tempoRestante = 90; 
-    let nivel = 1;
-    let maxMunicao = 5;
-    let municaoAtual = 5;
-    let velocidadeSpaw = 1000;
-    
-    let intervaloTempo, intervaloPatos, intervaloNivel; 
-    let jogoRodando = false;
-
-    // --- ELEMENTOS HTML ---
-    const elPontuacao = document.getElementById('pontuacao');
-    const elTempo = document.getElementById('tempo');
-    const elNivel = document.getElementById('nivel-ui');
-    const elBalas = document.getElementById('balas-ui');
-    const elAlerta = document.getElementById('alerta-recarregar');
-    const telaOverlay = document.getElementById('tela-overlay');
-    const btnIniciar = document.getElementById('btn-iniciar');
-    const arma = document.getElementById('arma-container');
-    const pontuacaoFinal = document.getElementById('pontuacao-final');
-
-    // --- INICIALIZAÇÃO ---
-    btnIniciar.addEventListener('click', iniciarJogo);
-
-    // --- MOVIMENTAÇÃO DA ARMA ---
-    document.addEventListener('mousemove', (e) => {
-      const baseArmaX = window.innerWidth / 2;
-      const baseArmaY = window.innerHeight;
-      let angulo = Math.atan2(e.clientY - baseArmaY, e.clientX - baseArmaX) * (180 / Math.PI) + 90;
-      if (angulo < -80) angulo = -80;
-      if (angulo > 80) angulo = 80;
-      arma.style.transform = `rotate(${angulo}deg)`;
-    });
-
-    // --- SISTEMA DE RECARGA (TECLA R) ---
-    document.addEventListener('keydown', (e) => {
-      if ((e.key === 'r' || e.key === 'R') && jogoRodando && municaoAtual < maxMunicao) {
-        municaoAtual = maxMunicao;
-        atualizarMunicaoUI();
-        tocarSom('recarregar');
-      }
-    });
-
-    function atualizarMunicaoUI() {
-      let icones = "";
-      for(let i = 0; i < municaoAtual; i++) icones += "▮";
-      elBalas.innerText = icones;
-      elAlerta.style.display = municaoAtual === 0 ? "block" : "none";
-    }
-
-    // --- SISTEMA DE TIRO ---
-    document.body.addEventListener('mousedown', function(event) {
-      if (!jogoRodando || event.target.tagName === 'BUTTON') return;
-
-      if (municaoAtual <= 0) {
-        tocarSom('vazio');
-        return;
-      }
-
-      municaoAtual--;
-      atualizarMunicaoUI();
-      tocarSom('tiro');
-
-      // Efeito Visual da Bala
-      const bala = document.createElement('div');
-      bala.className = 'bala';
-      bala.style.left = (window.innerWidth / 2 - 4) + 'px';
-      bala.style.top = (window.innerHeight - 50) + 'px';
-      document.body.appendChild(bala);
-
-      bala.getBoundingClientRect(); 
-      bala.style.left = (event.clientX - 4) + 'px';
-      bala.style.top = event.clientY + 'px';
-      bala.style.opacity = '0'; 
-      bala.style.transform = arma.style.transform; 
-      setTimeout(() => bala.remove(), 100);
-
-      // Penalidade por errar o tiro
-      if (!event.target.closest('.pato') && event.target.id !== 'chao' && event.target.id !== 'hud' && event.target.id !== 'hud-municao') {
-        pontos = Math.max(0, pontos - 1); 
-        elPontuacao.innerText = pontos;
-      }
-    });
-
-    // --- LOOP PRINCIPAL DO JOGO ---
-    function iniciarJogo() {
-      iniciarAudio(); // Libera o áudio no navegador
-      pontos = 0; tempoRestante = 90; nivel = 1; municaoAtual = maxMunicao; velocidadeSpaw = 1000;
-      jogoRodando = true; 
-      
-      elPontuacao.innerText = pontos; elTempo.innerText = tempoRestante; elNivel.innerText = nivel;
-      atualizarMunicaoUI();
-      
-      telaOverlay.classList.add('escondido'); 
-      pontuacaoFinal.classList.add('escondido');
-      
-      clearInterval(intervaloTempo); clearInterval(intervaloPatos); clearInterval(intervaloNivel);
-      
-      // Cronômetro
-      intervaloTempo = setInterval(() => {
-        tempoRestante--; elTempo.innerText = tempoRestante;
-        if (tempoRestante <= 0) finalizarJogo();
-      }, 1000);
-
-      // Sistema de Fases (Níveis)
-      intervaloNivel = setInterval(() => {
-        nivel++;
-        elNivel.innerText = nivel;
-        velocidadeSpaw = Math.max(300, velocidadeSpaw - 150); // Fica mais rápido até o limite de 300ms
-        clearInterval(intervaloPatos);
-        intervaloPatos = setInterval(criarPato, velocidadeSpaw);
-      }, 15000); // A cada 15 seg sobe de nível
-
-      intervaloPatos = setInterval(criarPato, velocidadeSpaw); 
-    }
-
-    // --- CRIAÇÃO DOS PATOS ---
-    function criarPato() {
-      if (!jogoRodando) return;
-      const pato = document.createElement('div');
-      pato.className = 'pato';
-      
-      // Sorteio do tipo de Pato
-      const chance = Math.random();
-      let corCabeca = '#1b5e20'; let corCorpo = '#8c8c8c'; // Comum
-      let pontosGanhos = 5; let multVelocidade = 1;
-      let ehZumbi = false;
-
-      if (chance > 0.90) { 
-        // 10% DOURADO (Rápido, muitos pontos)
-        corCabeca = '#FFD700'; corCorpo = '#DAA520';
-        pontosGanhos = 30; multVelocidade = 2.5;
-      } else if (chance > 0.75) {
-        // 15% ZUMBI/BOMBA (Tira pontos)
-        corCabeca = '#8B0000'; corCorpo = '#333333';
-        pontosGanhos = -15; multVelocidade = 1.2;
-        ehZumbi = true;
-      }
-      
-      pato.innerHTML = `
-        <svg viewBox="0 0 100 100" width="100%" height="100%">
-          <ellipse class="asa" cx="45" cy="45" rx="18" ry="25" fill="#4a4a4a"/>
-          <ellipse cx="45" cy="65" rx="35" ry="22" fill="${corCorpo}"/>
-          <rect x="65" y="30" width="16" height="30" fill="${corCabeca}"/>
-          <circle cx="73" cy="30" r="16" fill="${corCabeca}"/>
-          <path d="M 85 24 L 100 24 Q 102 24 102 28 L 85 30 Z" fill="#e65100"/>
-          <circle cx="78" cy="25" r="3.5" fill="${ehZumbi ? 'red' : 'white'}"/>
-          <circle cx="79" cy="25" r="2" fill="black"/>
-          <ellipse class="asa" cx="45" cy="55" rx="22" ry="12" fill="#696969"/>
-        </svg>
-      `;
-
-      const vindoDaEsquerda = Math.random() > 0.5;
-      let posX = vindoDaEsquerda ? -100 : window.innerWidth + 100;
-      let posY = Math.random() * (window.innerHeight - 300) + 50; 
-      
-      pato.style.left = posX + 'px';
-      pato.style.top = posY + 'px';
-      if (!vindoDaEsquerda) pato.querySelector('svg').style.transform = 'scaleX(-1)';
-
-      // Sistema de Acerto
-      pato.addEventListener('mousedown', function(event) {
-        if (pato.classList.contains('morto') || municaoAtual <= 0) return;
-        event.stopPropagation(); 
-        
-        pontos += pontosGanhos; 
-        if (pontos < 0) pontos = 0; // Não deixa ficar negativo
-        elPontuacao.innerText = pontos;
-        
-        if (ehZumbi) tocarSom('erro'); else tocarSom('acerto');
-
-        pato.classList.add('morto');
-        pato.innerHTML = `<div style="font-size: 50px; text-align: center; line-height: 100px; font-weight: bold; color: ${ehZumbi ? 'red' : 'lime'}; text-shadow: 2px 2px 0 #000;">${pontosGanhos > 0 ? '+'+pontosGanhos : pontosGanhos}</div>`;
-        
-        setTimeout(() => pato.remove(), 600); 
-      });
-
-      document.body.appendChild(pato);
-
-      // Movimentação Dinâmica baseada no Nível e Tipo
-      let velBase = (Math.random() * 3 + 2) + (nivel * 0.5);
-      let velocidadeX = velBase * multVelocidade * (vindoDaEsquerda ? 1 : -1);
-      let velocidadeY = (Math.random() - 0.5) * (3 + nivel); 
-
-      function moverPato() {
-        if (!jogoRodando || pato.classList.contains('morto')) return;
-        posX += velocidadeX; posY += velocidadeY;
-        pato.style.left = posX + 'px'; pato.style.top = posY + 'px';
-
-        // Bate no teto/chão virtual e inverte
-        if (posY < 10 || posY > window.innerHeight - 250) velocidadeY *= -1;
-        
-        // Remove quando sai da tela
-        if (posX > window.innerWidth + 150 || posX < -150) pato.remove();
-        else requestAnimationFrame(moverPato);
-      }
-      requestAnimationFrame(moverPato);
-    }
-
-    // --- FIM DE JOGO ---
-    function finalizarJogo() {
-      jogoRodando = false;
-      clearInterval(intervaloTempo); clearInterval(intervaloPatos); clearInterval(intervaloNivel);
-      document.querySelectorAll('.pato').forEach(p => p.remove());
-      
-      document.getElementById('titulo-tela').innerText = "FIM DE JOGO";
-      pontuacaoFinal.innerText = "PONTOS: " + pontos;
-      pontuacaoFinal.classList.remove('escondido');
-      
-      btnIniciar.innerText = "JOGAR NOVAMENTE";
-      telaOverlay.classList.remove('escondido');
-    }
-  </script>
-</body>
-</html>
+    position: relative; width: 20px; height: 150px; 
+    background: linear-gradient(to right, #333, #777, #222); 
+    margin: 0 auto;
