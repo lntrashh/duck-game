@@ -2,34 +2,41 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Caça aos Patos - Gráficos e Som Melhorados</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Caça aos Patos - Edição Definitiva</title>
 <style>
   /* --- VISUAL DO JOGO --- */
-  * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+  * { 
+    margin: 0; padding: 0; box-sizing: border-box; user-select: none; 
+    -webkit-user-select: none; -webkit-touch-callout: none;
+  }
   
   body { 
-    background: linear-gradient(to bottom, #4CA1AF, #C4E0E5); /* Fundo mais suave e realista */
-    overflow: hidden; 
-    height: 100vh; 
-    width: 100vw; 
-    /* Nova mira customizada */
-    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" fill="none" stroke="red" stroke-width="2"/><line x1="16" y1="0" x2="16" y2="8" stroke="red" stroke-width="2"/><line x1="16" y1="24" x2="16" y2="32" stroke="red" stroke-width="2"/><line x1="0" y1="16" x2="8" y2="16" stroke="red" stroke-width="2"/><line x1="24" y1="16" x2="32" y2="16" stroke="red" stroke-width="2"/><circle cx="16" cy="16" r="2" fill="red"/></svg>') 16 16, crosshair;
-    font-family: 'Courier New', Courier, monospace; 
+    background: linear-gradient(to bottom, #4CA1AF, #C4E0E5); 
+    overflow: hidden; height: 100vh; width: 100vw; 
+    touch-action: none; /* Trava zoom no celular */
+    cursor: crosshair; font-family: 'Courier New', Courier, monospace; 
   }
 
-  /* --- EFEITO DE FLASH DO TIRO --- */
+  /* --- DIA E NOITE --- */
+  #ceu-noite {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: linear-gradient(to bottom, #020111 0%, #20124d 100%);
+    opacity: 0; transition: opacity 3s ease-in-out; pointer-events: none; z-index: 1; 
+  }
+  .estrela {
+    position: absolute; background: white; border-radius: 50%; box-shadow: 0 0 5px white;
+  }
+
   #flash-tela {
     position: absolute; top: 0; left: 0; width: 100%; height: 100%;
     background: white; opacity: 0; pointer-events: none; z-index: 45;
     transition: opacity 0.05s ease-out;
   }
 
-  /* --- CENÁRIO (NUVENS E GRAMA) --- */
   .nuvem {
     position: absolute; background: rgba(255, 255, 255, 0.9);
-    border-radius: 50px; z-index: 2;
-    box-shadow: 5px 5px 15px rgba(0,0,0,0.1);
+    border-radius: 50px; z-index: 2; box-shadow: 5px 5px 15px rgba(0,0,0,0.1);
   }
   .nuvem::before, .nuvem::after {
     content: ''; position: absolute; background: rgba(255, 255, 255, 0.9); border-radius: 50%;
@@ -38,60 +45,9 @@
   #chao {
     position: absolute; bottom: 0; width: 100%; height: 15vh;
     background: linear-gradient(to top, #114B11, #228B22);
-    border-top: 8px solid #005000; z-index: 10;
+    border-top: 8px solid #005000; z-index: 10; transition: filter 3s;
     box-shadow: 0 -10px 20px rgba(0,0,0,0.3);
   }
 
-  /* --- HUD (TEXTOS NA TELA) --- */
   #hud { 
-    position: absolute; top: 15px; left: 20px; font-size: 24px; font-weight: bold; 
-    color: white; text-shadow: 2px 2px 0px #000; pointer-events: none; z-index: 20; 
-    line-height: 1.5;
-  }
-  #tempo { color: #FF4500; }
-  #nivel-ui { color: #FFD700; }
-  
-  #hud-municao {
-    position: absolute; bottom: 20px; right: 30px; font-size: 40px; font-weight: bold;
-    color: #FFD700; text-shadow: 2px 2px 0px #000; pointer-events: none; z-index: 20;
-    text-align: right;
-  }
-  #alerta-recarregar {
-    color: red; font-size: 20px; display: none; animation: piscar 0.5s infinite;
-  }
-  @keyframes piscar { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
-
-  /* --- O PATO ANIMADO --- */
-  .pato {
-    position: absolute; width: 100px; height: 100px; z-index: 5;
-    transition: transform 0.1s;
-    filter: drop-shadow(3px 5px 4px rgba(0,0,0,0.3));
-  }
-
-  @keyframes baterAsa {
-    0% { transform: scaleY(1) rotate(0deg); }
-    50% { transform: scaleY(-1) rotate(-10deg); }
-    100% { transform: scaleY(1) rotate(0deg); }
-  }
-  .asa { transform-origin: center; animation: baterAsa 0.15s infinite; }
-
-  /* Efeito quando acerta o pato */
-  .morto {
-    transform: scaleY(-1) translateY(-20px) !important;
-    pointer-events: none; 
-    filter: brightness(2) contrast(2) grayscale(0.5) !important; /* Pisca branco/cinza */
-    animation: cair 0.5s forwards ease-in;
-  }
-  @keyframes cair { to { top: 100vh; } }
-
-  /* --- A ESPINGARDA --- */
-  #arma-container {
-    position: absolute; bottom: -10px; left: 50%; width: 44px; height: 220px;
-    margin-left: -22px; transform-origin: bottom center; pointer-events: none; z-index: 40;
-    filter: drop-shadow(5px 5px 10px rgba(0,0,0,0.5));
-  }
-
-  #cano {
-    position: relative; width: 20px; height: 150px; 
-    background: linear-gradient(to right, #333, #777, #222); 
-    margin: 0 auto;
+    position: absolute; top: 15px; left: 20px; font-size: 24px
