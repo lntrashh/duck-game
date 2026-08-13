@@ -3,29 +3,23 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Caça aos Patos - Edição Definitiva</title>
+<title>Caça aos Patos - Mobile + Arma Customizada</title>
 <style>
   /* --- VISUAL DO JOGO --- */
   * { 
     margin: 0; padding: 0; box-sizing: border-box; user-select: none; 
-    -webkit-user-select: none; -webkit-touch-callout: none;
+    -webkit-user-select: none; 
+    -webkit-touch-callout: none;
   }
   
   body { 
     background: linear-gradient(to bottom, #4CA1AF, #C4E0E5); 
-    overflow: hidden; height: 100vh; width: 100vw; 
-    touch-action: none; /* Trava zoom no celular */
-    cursor: crosshair; font-family: 'Courier New', Courier, monospace; 
-  }
-
-  /* --- DIA E NOITE --- */
-  #ceu-noite {
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    background: linear-gradient(to bottom, #020111 0%, #20124d 100%);
-    opacity: 0; transition: opacity 3s ease-in-out; pointer-events: none; z-index: 1; 
-  }
-  .estrela {
-    position: absolute; background: white; border-radius: 50%; box-shadow: 0 0 5px white;
+    overflow: hidden; 
+    height: 100vh; 
+    width: 100vw; 
+    touch-action: none; /* Trava scroll no mobile */
+    cursor: crosshair;
+    font-family: 'Courier New', Courier, monospace; 
   }
 
   #flash-tela {
@@ -45,9 +39,108 @@
   #chao {
     position: absolute; bottom: 0; width: 100%; height: 15vh;
     background: linear-gradient(to top, #114B11, #228B22);
-    border-top: 8px solid #005000; z-index: 10; transition: filter 3s;
+    border-top: 8px solid #005000; z-index: 10;
     box-shadow: 0 -10px 20px rgba(0,0,0,0.3);
   }
 
   #hud { 
-    position: absolute; top: 15px; left: 20px; font-size: 24px
+    position: absolute; top: 15px; left: 20px; font-size: 24px; font-weight: bold; 
+    color: white; text-shadow: 2px 2px 0px #000; pointer-events: none; z-index: 20; 
+    line-height: 1.5;
+  }
+  #tempo { color: #FF4500; }
+  #nivel-ui { color: #FFD700; }
+  
+  /* Botão de Munição (Clicável para Mobile) */
+  #hud-municao {
+    position: absolute; bottom: 20px; right: 20px; font-size: 40px; font-weight: bold;
+    color: #FFD700; text-shadow: 2px 2px 0px #000; z-index: 50; 
+    text-align: right; background: rgba(0, 0, 0, 0.4); padding: 10px 20px;
+    border-radius: 15px; border: 2px solid rgba(255,255,255,0.2);
+    cursor: pointer; 
+  }
+  #hud-municao:active { background: rgba(0, 0, 0, 0.7); transform: scale(0.95); }
+  
+  #alerta-recarregar {
+    color: red; font-size: 16px; animation: piscar 0.5s infinite; text-align: center; margin-bottom: -5px;
+  }
+  @keyframes piscar { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
+
+  .pato {
+    position: absolute; width: 100px; height: 100px; z-index: 5;
+    transition: transform 0.1s; filter: drop-shadow(3px 5px 4px rgba(0,0,0,0.3));
+    pointer-events: none; 
+  }
+
+  @keyframes baterAsa { 0% { transform: scaleY(1); } 50% { transform: scaleY(-1) rotate(-10deg); } 100% { transform: scaleY(1); } }
+  .asa { transform-origin: center; animation: baterAsa 0.15s infinite; }
+
+  .morto {
+    transform: scaleY(-1) translateY(-20px) !important;
+    filter: brightness(2) contrast(2) grayscale(0.5) !important; 
+    animation: cair 0.5s forwards ease-in;
+  }
+  @keyframes cair { to { top: 100vh; } }
+
+  /* --- SUA ARMA CUSTOMIZADA --- */
+  #arma-container {
+    position: absolute; bottom: -20px; left: 50%; width: 120px; height: 300px;
+    margin-left: -60px; transform-origin: bottom center; pointer-events: none; z-index: 40;
+    transition: transform 0.05s;
+    /* Usa a imagem que você enviou */
+    background-image: url('13369865-m.jpg');
+    background-size: contain;
+    background-position: center bottom;
+    background-repeat: no-repeat;
+    filter: drop-shadow(5px 5px 15px rgba(0,0,0,0.6));
+  }
+
+  #tela-overlay { 
+    display: flex; flex-direction: column; justify-content: center; align-items: center; 
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+    background: rgba(0, 10, 20, 0.9); z-index: 100; color: white; padding: 20px; text-align: center;
+  }
+  .escondido { display: none !important; }
+  
+  #tela-overlay h1 { font-size: 50px; color: #FFD700; margin-bottom: 10px; text-shadow: 4px 4px 0 #D2691E; }
+  #tela-overlay p { font-size: 18px; margin-bottom: 30px; color: #eee; max-width: 600px;}
+  
+  button { 
+    padding: 15px 40px; font-size: 24px; font-weight: bold; font-family: inherit;
+    color: white; background: linear-gradient(to bottom, #FF4500, #B22222); 
+    border: 4px solid #FFF; border-radius: 8px; cursor: pointer; 
+    box-shadow: 0 5px 0 #800000; transition: 0.1s;
+  }
+  button:active { transform: translateY(5px); box-shadow: 0 0 0 #800000; }
+</style>
+</head>
+<body>
+
+  <audio id="som-tiro-mp3" src="tiro.mp3"></audio>
+
+  <div id="flash-tela"></div>
+
+  <div class="nuvem" style="top: 10%; left: 10%; width: 150px; height: 50px;"></div>
+  <div class="nuvem" style="top: 20%; left: 70%; width: 200px; height: 70px;"></div>
+  <div class="nuvem" style="top: 40%; left: 30%; width: 120px; height: 40px;"></div>
+
+  <div id="hud">
+    NÍVEL: <span id="nivel-ui">1</span><br>
+    PONTOS: <span id="pontuacao">0</span><br>
+    TEMPO: <span id="tempo">90</span>s
+  </div>
+
+  <div id="hud-municao">
+    <div id="alerta-recarregar">RECARREGAR!</div>
+    <span id="balas-ui">▮▮▮▮▮</span>
+  </div>
+
+  <div id="chao"></div>
+  
+  <div id="arma-container"></div>
+
+  <div id="tela-overlay">
+    <h1 id="titulo-tela">CAÇA AOS PATOS</h1>
+    <p>
+      🦆 <b>Verde:</b> +5 Pts | 🌟 <b>Ouro:</b> +30 Pts | 💀 <b>Zumbi:</b> -15 Pts<br><br>
+      ⚠️
