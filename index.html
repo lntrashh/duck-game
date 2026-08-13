@@ -1,161 +1,84 @@
 <!DOCTYPE html>
-<html lang="pt-PT">
+<html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Caça aos Patos - Final</title>
+<title>Caça aos Patos - Original Retro</title>
 <style>
-  /* --- BASE DO JOGO --- */
-  * { 
-    margin: 0; padding: 0; box-sizing: border-box; 
-    user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  /* --- CENÁRIO RETRO --- */
+  body {
+    margin: 0; padding: 0; overflow: hidden;
+    background: #4682B4; /* Azul clássico escuro */
+    font-family: "Courier New", monospace;
+    cursor: crosshair;
+    user-select: none;
   }
   
-  body { 
-    background: linear-gradient(to bottom, #4CA1AF, #C4E0E5); 
-    overflow: hidden; height: 100vh; width: 100vw; 
-    touch-action: none; /* Fundamental para não bugar no telemóvel */
-    cursor: crosshair; font-family: 'Courier New', Courier, monospace; 
-  }
-
-  /* --- CENÁRIO --- */
-  #flash-tela {
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    background: white; opacity: 0; pointer-events: none; z-index: 45;
-    transition: opacity 0.05s ease-out;
-  }
-
-  .nuvem {
-    position: absolute; background: rgba(255, 255, 255, 0.9);
-    border-radius: 50px; z-index: 2;
-  }
-  .nuvem::before, .nuvem::after {
-    content: ''; position: absolute; background: rgba(255, 255, 255, 0.9); border-radius: 50%;
-  }
-
   #chao {
-    position: absolute; bottom: 0; width: 100%; height: 15vh;
-    background: linear-gradient(to top, #114B11, #228B22);
-    border-top: 8px solid #005000; z-index: 10;
+    position: absolute; bottom: 0; width: 100%; height: 20vh;
+    background: #2E8B57; /* Verde retro */
+    border-top: 10px solid #006400; z-index: 5;
   }
 
-  /* --- MENUS E INTERFACE --- */
-  #hud { 
-    position: absolute; top: 15px; left: 20px; font-size: 20px; font-weight: bold; 
-    color: white; text-shadow: 2px 2px 0px #000; pointer-events: none; z-index: 20; 
+  /* --- HUD (PLACAR) --- */
+  #hud {
+    position: absolute; top: 15px; left: 15px; font-size: 28px;
+    font-weight: bold; color: #FFF; text-shadow: 3px 3px 0 #000; z-index: 10;
   }
   
-  #hud-municao {
-    position: absolute; bottom: 20px; right: 20px; font-size: 30px; font-weight: bold;
-    color: #FFD700; text-shadow: 2px 2px 0px #000; z-index: 50; 
-    text-align: right; background: rgba(0, 0, 0, 0.5); padding: 10px 15px;
-    border-radius: 10px; border: 2px solid #FFF; cursor: pointer;
+  #msg-alerta { color: #FF4500; font-size: 20px; display: none; }
+
+  /* --- ARMA 100% CSS (SEM IMAGENS EXTERNAS) --- */
+  #arma-container {
+    position: absolute; bottom: 0; left: 50%;
+    width: 30px; height: 180px; margin-left: -15px;
+    transform-origin: bottom center; z-index: 20; pointer-events: none;
   }
-  #alerta-recarregar { color: red; font-size: 14px; text-align: center; display: none; }
+  #cano {
+    width: 16px; height: 130px; background: #555;
+    margin: 0 auto; border: 3px solid #000; border-bottom: none;
+  }
+  #mira-ponta {
+    width: 6px; height: 6px; background: red; margin: 0 auto;
+    position: relative; top: -6px; border: 1px solid black;
+  }
+  #coronha {
+    width: 30px; height: 50px; background: #A0522D; /* Marrom clássico */
+    border: 3px solid #000; border-bottom: none;
+  }
 
   /* --- PATOS --- */
   .pato {
-    position: absolute; width: 90px; height: 90px; z-index: 5;
-    transition: transform 0.1s; cursor: crosshair;
+    position: absolute; width: 70px; height: 70px; z-index: 4; cursor: crosshair;
   }
-  .asa { transform-origin: center; animation: baterAsa 0.15s infinite; }
-  @keyframes baterAsa { 0% { transform: scaleY(1); } 50% { transform: scaleY(-1); } 100% { transform: scaleY(1); } }
+  .morto { pointer-events: none; filter: brightness(0) invert(1); } /* Fica branco ao morrer */
 
-  .morto {
-    transform: scaleY(-1) translateY(-20px) !important;
-    pointer-events: none; filter: grayscale(100%);
-    animation: cair 0.5s forwards ease-in;
-  }
-  @keyframes cair { to { top: 100vh; } }
-
-  /* --- ARMA EM CSS --- */
-  #arma-container {
-    position: absolute; bottom: -10px; left: 50%; width: 40px; height: 200px;
-    margin-left: -20px; transform-origin: bottom center; pointer-events: none; z-index: 40;
-  }
-  #cano {
-    position: relative; width: 16px; height: 140px; background: #555; 
-    margin: 0 auto; border: 2px solid #000; border-radius: 4px 4px 0 0;
-  }
-  #coronha {
-    width: 40px; height: 70px; background: #8b4513; border: 2px solid #000; border-radius: 0 0 10px 10px;
-  }
-
-  /* --- TELA INICIAL --- */
-  #tela-overlay { 
-    display: flex; flex-direction: column; justify-content: center; align-items: center; 
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-    background: rgba(0, 10, 20, 0.95); z-index: 100; color: white; text-align: center;
+  /* --- TELA DE MENU --- */
+  #tela-overlay {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: #000; display: flex; flex-direction: column;
+    justify-content: center; align-items: center; z-index: 100;
   }
   .escondido { display: none !important; }
-  button { 
-    padding: 15px 40px; font-size: 24px; font-weight: bold; background: #FF4500; 
-    color: white; border: 4px solid #FFF; border-radius: 8px; cursor: pointer; margin-top: 20px;
+  
+  #titulo { color: #32CD32; font-size: 60px; text-shadow: 4px 4px #006400; margin-bottom: 10px; }
+  .texto-branco { color: #FFF; font-size: 22px; margin-bottom: 30px; }
+  
+  button {
+    padding: 15px 40px; font-size: 24px; font-weight: bold; background: #FF0000;
+    color: white; border: 4px solid #FFF; cursor: pointer; font-family: "Courier New", monospace;
   }
+  button:hover { background: #8B0000; }
 </style>
 </head>
 <body>
 
-  <div id="flash-tela"></div>
-
-  <div class="nuvem" style="top: 15%; left: 10%; width: 120px; height: 40px;"></div>
-  <div class="nuvem" style="top: 25%; left: 70%; width: 160px; height: 50px;"></div>
-
   <div id="hud">
-    NÍVEL: <span id="nivel-ui">1</span><br>
-    PONTOS: <span id="pontuacao">0</span><br>
-    TEMPO: <span id="tempo">90</span>s
-  </div>
-
-  <div id="hud-municao">
-    <div id="alerta-recarregar">RECARREGAR!</div>
-    <span id="balas-ui">▮▮▮▮▮</span>
+    PONTOS: <span id="pts">0</span><br>
+    BALAS: <span id="mun">5</span><br>
+    <div id="msg-alerta">TECLE 'R' PARA RECARREGAR</div>
   </div>
 
   <div id="chao"></div>
   
   <div id="arma-container">
-    <div id="cano"></div>
-    <div id="coronha"></div>
-  </div>
-
-  <div id="tela-overlay">
-    <h1 style="color: #FFD700; font-size: 40px;">CAÇA AOS PATOS</h1>
-    <p style="font-size: 18px; margin-top: 10px;">Toque na caixa de balas para recarregar!</p>
-    <h2 id="pontuacao-final" class="escondido" style="color: lime; margin-top: 20px;">0 PONTOS</h2>
-    <button id="btn-iniciar">JOGAR!</button>
-  </div>
-
-  <script>
-    // --- LÓGICA DO JOGO ---
-    let pontos = 0, tempo = 90, nivel = 1, balas = 5, jogando = false;
-    let intTempo, intPatos, intNivel, velSpawn = 1000;
-
-    const elPontos = document.getElementById('pontuacao');
-    const elTempo = document.getElementById('tempo');
-    const elNivel = document.getElementById('nivel-ui');
-    const elBalas = document.getElementById('balas-ui');
-    const elAlerta = document.getElementById('alerta-recarregar');
-    const arma = document.getElementById('arma-container');
-    const tela = document.getElementById('tela-overlay');
-    const flash = document.getElementById('flash-tela');
-
-    // Iniciar
-    document.getElementById('btn-iniciar').addEventListener('click', () => {
-      pontos = 0; tempo = 90; nivel = 1; balas = 5; velSpawn = 1000; jogando = true;
-      atualizarHUD(); tela.classList.add('escondido');
-      
-      clearInterval(intTempo); clearInterval(intPatos); clearInterval(intNivel);
-      
-      intTempo = setInterval(() => {
-        tempo--; elTempo.innerText = tempo;
-        if(tempo <= 0) fimDeJogo();
-      }, 1000);
-
-      intNivel = setInterval(() => {
-        nivel++; elNivel.innerText = nivel;
-        velSpawn = Math.max(400, velSpawn - 150);
-        clearInterval(intPatos); intPatos = setInterval(criarPato, velSpawn);
-      }, 15000);
-
-      intPatos
+    <div id
